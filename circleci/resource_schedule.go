@@ -1,9 +1,20 @@
 package circleci
 
-import "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+import (
+	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
 
 func resourceSchedule() *schema.Resource {
 	return &schema.Resource{
+		CreateContext: resourceScheduleCreate,
+		ReadContext:   resourceScheduleRead,
+		UpdateContext: resourceScheduleUpdate,
+		DeleteContext: resourceScheduleDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -55,4 +66,28 @@ func resourceSchedule() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceScheduleCreate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	return diags
+}
+
+func resourceScheduleRead(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	return diags
+}
+
+func resourceScheduleUpdate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	return diags
+}
+
+func resourceScheduleDelete(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	return diags
 }
