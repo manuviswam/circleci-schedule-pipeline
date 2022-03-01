@@ -2,6 +2,7 @@ package circleci
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -18,46 +19,47 @@ func resourceSchedule() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: false,
+				Required: true,
 			},
 			"timetable": &schema.Schema{
 				Type:     schema.TypeSet,
-				Optional: false,
+				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"per-hour": &schema.Schema{
+						"per_hour": &schema.Schema{
 							Type:     schema.TypeInt,
-							Optional: false,
+							Required: true,
 							//	validate number 1 to 60
 						},
-						"hours-of-day": &schema.Schema{
+						"hours_of_day": &schema.Schema{
 							Type: schema.TypeList,
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
-							Optional: false,
+							Required: true,
 						},
-						"days-of-week": &schema.Schema{
+						"days_of_week": &schema.Schema{
 							Type: schema.TypeList,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
-							Optional: false,
+							Required: true,
 							//	"TUE" "SAT" "SUN" "MON" "THU" "WED" "FRI"
 						},
 					},
 				},
 			},
-			"attribution-actor": &schema.Schema{
-				Type: schema.TypeString,
+			"attribution_actor": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 				//	"current" "system"
-				Optional: false,
 			},
 			"parameters": &schema.Schema{
 				Type:     schema.TypeMap,
-				Optional: false,
+				Required: true,
 				Elem: &schema.Schema{
-					Type: schema.TypeString,
+					Type:     schema.TypeString,
+					Optional: true,
 				},
 			},
 			"description": &schema.Schema{
@@ -70,7 +72,24 @@ func resourceSchedule() *schema.Resource {
 
 func resourceScheduleCreate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-
+	circleClient := i.(*Client)
+	name := data.Get("name").(string)
+	timetable := data.Get("timetable").(map[string]interface{})
+	perHour := timetable["per_hour"].(int)
+	hoursOfDay := timetable["hours_of_day"].([]int)
+	daysOfWeek := timetable["days_of_week"].([]string)
+	attributionActor := data.Get("attribution_actor").(string)
+	parameters := data.Get("parameters").(map[string]string)
+	description := data.Get("description").(string)
+	fmt.Println("client is {}", circleClient)
+	fmt.Println("name is {}", name)
+	fmt.Println("timetable is {}", timetable)
+	fmt.Println("perHour is {}", perHour)
+	fmt.Println("hoursOfDay is {}", hoursOfDay)
+	fmt.Println("daysOfWeek is {}", daysOfWeek)
+	fmt.Println("attributionActor is {}", attributionActor)
+	fmt.Println("parameters is {}", parameters)
+	fmt.Println("description is {}", description)
 	return diags
 }
 
