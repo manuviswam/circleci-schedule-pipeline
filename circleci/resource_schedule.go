@@ -2,9 +2,9 @@ package circleci
 
 import (
 	"context"
-	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"time"
 )
 
 func resourceSchedule() *schema.Resource {
@@ -71,42 +71,81 @@ func resourceSchedule() *schema.Resource {
 }
 
 func resourceScheduleCreate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
 	circleClient := i.(*Client)
-	name := data.Get("name").(string)
-	timetable := data.Get("timetable").(map[string]interface{})
-	perHour := timetable["per_hour"].(int)
-	hoursOfDay := timetable["hours_of_day"].([]int)
-	daysOfWeek := timetable["days_of_week"].([]string)
-	attributionActor := data.Get("attribution_actor").(string)
-	parameters := data.Get("parameters").(map[string]string)
-	description := data.Get("description").(string)
-	fmt.Println("client is {}", circleClient)
-	fmt.Println("name is {}", name)
-	fmt.Println("timetable is {}", timetable)
-	fmt.Println("perHour is {}", perHour)
-	fmt.Println("hoursOfDay is {}", hoursOfDay)
-	fmt.Println("daysOfWeek is {}", daysOfWeek)
-	fmt.Println("attributionActor is {}", attributionActor)
-	fmt.Println("parameters is {}", parameters)
-	fmt.Println("description is {}", description)
-	return diags
+	s := getScheduleFromData(data)
+
+	id, err := circleClient.createSchedule(s)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	data.SetId(id)
+
+	return resourceScheduleRead(ctx, data, i)
 }
 
 func resourceScheduleRead(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	return diags
+	circleClient := i.(*Client)
+	_, err := circleClient.readSchedule(data.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	//if err := data.Set("schedule", schedule); err != nil {
+	//	return diag.FromErr(err)
+	//}
+	return nil
 }
 
 func resourceScheduleUpdate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+	circleClient := i.(*Client)
+	s := getScheduleFromData(data)
+	err := circleClient.updateSchedule(data.Id(), s)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
-	return diags
+	if err := data.Set("last_updated", time.Now().Format(time.RFC850)); err != nil {
+		return diag.FromErr(err)
+	}
+	return resourceScheduleRead(ctx, data, i)
 }
 
 func resourceScheduleDelete(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+	circleClient := i.(*Client)
+	err := circleClient.deleteSchedule(data.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	data.SetId("")
+	return nil
+}
 
-	return diags
+func getScheduleFromData(data *schema.ResourceData) Schedule {
+	name := data.Get("name").(string)
+	timetable := data.Get("timetable").(*schema.Set).List()[0].(map[string]interface{})
+	perHour := timetable["per_hour"].(int)
+	hoursOfDay := make([]int, len(timetable["hours_of_day"].([]interface{})))
+	for _, v := range timetable["hours_of_day"].([]interface{}) {
+		hoursOfDay = append(hoursOfDay, v.(int))
+	}
+	daysOfWeek := make([]string, len(timetable["days_of_week"].([]interface{})))
+	for _, v := range timetable["days_of_week"].([]interface{}) {
+		daysOfWeek = append(daysOfWeek, v.(string))
+	}
+
+	attributionActor := data.Get("attribution_actor").(string)
+	parameters := data.Get("parameters").(map[string]interface{})
+	description := data.Get("description").(string)
+
+	s := Schedule{
+		Name: name,
+		TimeTable: TimeTable{
+			PerHour:    perHour,
+			HoursOfDay: hoursOfDay,
+			DaysOfWeek: daysOfWeek,
+		},
+		AttributionActor: attributionActor,
+		Parameters:       parameters,
+		Description:      description,
+	}
+	return s
 }
