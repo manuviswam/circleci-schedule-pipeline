@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type Client struct {
@@ -28,7 +29,23 @@ type Schedule struct {
 	Description      string                 `json:"description"`
 }
 
+type actor struct {
+	Id    string `json:"id"`
+	Login string `json:"login"`
+	Name  string `json:"name"`
+}
+
+type ScheduleResponse struct {
+	Schedule
+	Id          string    `json:"id"`
+	UpdatedAt   time.Time `json:"updated-at"`
+	CreatedAt   time.Time `json:"created-at"`
+	ProjectSlug string    `json:"project-slug"`
+	Actor       actor     `json:"actor"`
+}
+
 const scheduleApi = "https://circleci.com/api/v2/project/%s/schedule"
+const scheduleApiWithId = "https://circleci.com/api/v2/schedule/%s"
 
 func newClient(projectSlug, token string) *Client {
 	return &Client{
@@ -42,14 +59,55 @@ func (c *Client) createSchedule(s Schedule) (string, error) {
 }
 
 func (c *Client) updateSchedule(id string, s Schedule) (string, error) {
-	return createOrUpdate(c, s, "PATCH", fmt.Sprintf(scheduleApi, c.ProjectSlug)+"/"+id, 200)
+	return createOrUpdate(c, s, "PATCH", fmt.Sprintf(scheduleApiWithId, id), 200)
 }
 
-func (c *Client) readSchedule(id string) (s Schedule, e error) {
+func (c *Client) readSchedule(id string) (s ScheduleResponse, err error) {
+	url := fmt.Sprintf(scheduleApiWithId, id)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
+
+	req.Header.Add("circle-token", c.Token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		body, _ := ioutil.ReadAll(res.Body)
+		return s, errors.New("Request failed with status : " + res.Status + string(body))
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(body, &s)
 	return
 }
 
-func (c *Client) deleteSchedule(id string) error {
+func (c *Client) deleteSchedule(id string) (err error) {
+
+	url := fmt.Sprintf(scheduleApiWithId, id)
+
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return
+	}
+	req.Header.Add("circle-token", c.Token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		body, _ := ioutil.ReadAll(res.Body)
+		return errors.New("Request failed with status : " + res.Status + string(body))
+	}
 	return nil
 }
 
