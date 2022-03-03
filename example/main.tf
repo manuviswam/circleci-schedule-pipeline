@@ -8,8 +8,8 @@ terraform {
 }
 
 provider "circleci" {
-  project_slug = "slugggg"
-  circle_token = "tooookeeennnn"
+  project_slug = "gh/manuviswam/Awesome-schedule"
+  circle_token = ""
 }
 
 resource "circleci_schedule" "daily_security_audit" {
@@ -17,11 +17,11 @@ resource "circleci_schedule" "daily_security_audit" {
   timetable {
     per_hour = 1
     hours_of_day = [1,2,3]
-    days_of_week = ["MON","TUE"]
+    days_of_week = ["MON","WED"]
   }
   attribution_actor = "current"
   parameters = {
-    foo = "bar"
+    branch: "main"
   }
   description = "Pipeline to run security audit every day"
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"time"
 )
 
 func resourceSchedule() *schema.Resource {
@@ -98,14 +97,15 @@ func resourceScheduleRead(ctx context.Context, data *schema.ResourceData, i inte
 func resourceScheduleUpdate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
 	circleClient := i.(*Client)
 	s := getScheduleFromData(data)
-	err := circleClient.updateSchedule(data.Id(), s)
+	id, err := circleClient.updateSchedule(data.Id(), s)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := data.Set("last_updated", time.Now().Format(time.RFC850)); err != nil {
-		return diag.FromErr(err)
-	}
+	data.SetId(id)
+	//if err := data.Set("last_updated", time.Now().Format(time.RFC850)); err != nil {
+	//	return diag.FromErr(err)
+	//}
 	return resourceScheduleRead(ctx, data, i)
 }
 
@@ -123,11 +123,11 @@ func getScheduleFromData(data *schema.ResourceData) Schedule {
 	name := data.Get("name").(string)
 	timetable := data.Get("timetable").(*schema.Set).List()[0].(map[string]interface{})
 	perHour := timetable["per_hour"].(int)
-	hoursOfDay := make([]int, len(timetable["hours_of_day"].([]interface{})))
+	hoursOfDay := make([]int, 0)
 	for _, v := range timetable["hours_of_day"].([]interface{}) {
 		hoursOfDay = append(hoursOfDay, v.(int))
 	}
-	daysOfWeek := make([]string, len(timetable["days_of_week"].([]interface{})))
+	daysOfWeek := make([]string, 0)
 	for _, v := range timetable["days_of_week"].([]interface{}) {
 		daysOfWeek = append(daysOfWeek, v.(string))
 	}
